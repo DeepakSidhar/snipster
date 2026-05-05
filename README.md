@@ -1,2 +1,2 @@
 # snipster
-snipster
+A code snippet manager
