@@ -1,0 +1,28 @@
+[project]
+name = "snipster"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "C:/Users/dsidh", email = "sidhardeepak@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "sqlmodel>=0.0.38",
+]
+
+[project.scripts]
+snipster = "snipster:main"
+
+[build-system]
+requires = ["uv_build>=0.8.22,<0.9.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "prek>=0.3.11",
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.15.12",
+    "ty>=0.0.34",
+]
