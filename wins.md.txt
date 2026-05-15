@@ -1,0 +1,11 @@
+## Week 1
+- [ ] Set up project with uv
+- [ ] Defined first SQLModel model
+- [ ] All tests passing
+- [ ] Learned about pytest fixtures
+- [ ] First PR submitted
+
+### Notes
+- Struggled with: ...
+- Learned: ...
+- Want to explore: ...
