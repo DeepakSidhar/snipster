@@ -3,7 +3,7 @@ from snipster.exceptions import SnippetNotFoundError
 from snipster.models import Language, Snippet
 from snipster.repo import (
   #  DBSnippetRepo,
-  #  InMemorySnippetRepo,
+    InMemorySnippetRepo,
     SnippetRepository,
 )
 
