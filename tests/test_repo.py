@@ -1,18 +1,20 @@
 import pytest
+
 from snipster.exceptions import SnippetNotFoundError
 from snipster.models import Language, Snippet
 from snipster.repo import (
-  #  DBSnippetRepo,
+    DBSnippetRepo,
     InMemorySnippetRepo,
     SnippetRepository,
 )
-
 
 # --- Interface Tests ---
 
 
 def test_cannot_instantiate_abstract_class():
-    with pytest.raises(TypeError, match="Can't instantiate abstract class SnippetRepository"):
+    with pytest.raises(
+        TypeError, match="Can't instantiate abstract class SnippetRepository"
+    ):
         SnippetRepository()
 
 
@@ -24,7 +26,9 @@ def test_cannot_subclass_without_all_methods():
         def list(self):
             pass
 
-    with pytest.raises(TypeError, match="Can't instantiate abstract class IncompleteRepo"):
+    with pytest.raises(
+        TypeError, match="Can't instantiate abstract class IncompleteRepo"
+    ):
         IncompleteRepo()
 
 

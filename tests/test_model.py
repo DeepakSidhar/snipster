@@ -1,5 +1,4 @@
 import pytest
-from sqlmodel import Session, SQLModel, create_engine
 
 from snipster.models import Language, Snippet
 
