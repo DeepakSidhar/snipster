@@ -1,8 +1,8 @@
 import pytest
-from sqlmodel import Session, SQLModel, create_engine
 
 from snipster.models import Language, Snippet
 
+"""
 
 @pytest.fixture(scope="module")
 def engine():
@@ -17,7 +17,7 @@ def session(engine):
     with Session(engine) as session:
         yield session
         session.rollback()
-
+"""
 
 # --- Language Enum Tests ---
 
