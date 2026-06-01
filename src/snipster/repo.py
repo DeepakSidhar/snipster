@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-
 from sqlmodel import Session, select
-
 from .exceptions import SnippetNotFoundError
 from .models import Snippet
 
@@ -28,7 +26,6 @@ class SnippetRepository(ABC):
 
 
 class InMemorySnippetRepo(SnippetRepository):
-    # Constructr
     def __init__(self) -> None:
         self._data: dict[int, Snippet] = {}  # empty dict
 
