@@ -61,6 +61,16 @@ def example_snippets() -> list[Snippet]:
         ),
     ]
 
+@pytest.fixture
+def repo(backend, request):
+    if backend == "db":
+        return DBSnippetRepo(request.getfixturevalue("session"))
+    return InMemorySnippetRepo()
+
+@pytest.fixture
+def add_snippets(repo, example_snippets):
+    for snippet in example_snippets:
+        repo.add(snippet)
 
 # --- InMemorySnippetRepo Tests ---
 
@@ -177,3 +187,36 @@ def test_db_full_lifecycle(session, example_snippet):
     assert len(repo.list()) == 0
     with pytest.raises(SnippetNotFoundError):
         repo.delete(1)
+
+# Search Tests
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_search_by_title(backend, repo, add_snippets):
+    results = repo.search("print")
+    assert len(results) == 1
+    assert results[0].title == "print to stdout"
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_search_by_code(backend, repo, add_snippets):
+    results = repo.search("enter city")
+    assert len(results) == 1
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_search_case_insensitive(backend, repo, add_snippets):
+    assert len(repo.search("do")) == 2
+    assert len(repo.search("Do")) == 2
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_search_no_results(backend, repo, add_snippets):
+    assert len(repo.search("notfound")) == 0
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_search_with_language_filter(backend, repo, add_snippets):
+    assert len(repo.search("print", language=Language.python)) == 1
+    assert len(repo.search("print", language=Language.rust)) == 0
+    assert len(repo.search("do", language=Language.rust)) == 1
+    assert len(repo.search("Do", language=Language.python)) == 1

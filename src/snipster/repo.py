@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from sqlmodel import Session, select
 from .exceptions import SnippetNotFoundError
-from .models import Snippet
+from .models import Snippet, Language
 
 
 # Abstract layer of the following (add, list, get, delete)
@@ -22,6 +22,10 @@ class SnippetRepository(ABC):
 
     @abstractmethod
     def delete(self, snippet_id: int) -> None:
+        pass
+
+    @abstractmethod
+    def search(self, term: str, *, language: str | None = None) -> Sequence[Snippet]:
         pass
 
 
@@ -44,6 +48,16 @@ class InMemorySnippetRepo(SnippetRepository):
         snippet = self._data.pop(snippet_id, None)
         if snippet is None:
             raise SnippetNotFoundError(f"Snippet id {snippet_id} not found")
+
+    def search(self, query: str, language : Language | None = None) -> Sequence[Snippet]:
+        query = query.lower()
+        results =  []
+        for snippet in self._data.values():
+            text =  query in snippet.title.lower() or query in snippet.code.lower()
+            lang =  language is None or snippet.language == language
+            if text and lang:
+                results.append(snippet)
+        return results
 
 
 class DBSnippetRepo(SnippetRepository):
@@ -72,3 +86,10 @@ class DBSnippetRepo(SnippetRepository):
             raise SnippetNotFoundError(f"Snippet id {snippet_id} not found")
         self.session.delete(snippet)
         self.session.commit()
+
+    def search(self, query: str, language : Language | None = None) -> Sequence[Snippet]:
+        search = f"%{query}%"
+        statment = select(Snippet).where(Snippet.title.ilike(search) | Snippet.code.ilike(search))
+        if language is not None:
+            statment = statment.where(Snippet.language == language)
+        return self.session.exec(statment).all()
