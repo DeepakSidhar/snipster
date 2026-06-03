@@ -28,6 +28,10 @@ class SnippetRepository(ABC):
     def search(self, term: str, *, language: str | None = None) -> Sequence[Snippet]:
         pass
 
+    @abstractmethod
+    def toggle_favorite(self, snippet_id: int) -> None:
+        pass
+
 
 class InMemorySnippetRepo(SnippetRepository):
     def __init__(self) -> None:
@@ -58,6 +62,12 @@ class InMemorySnippetRepo(SnippetRepository):
             if text and lang:
                 results.append(snippet)
         return results
+
+    def toggle_favorite(self, snippet_id: int) -> None:
+        snippet = self._data.get(snippet_id)
+        if snippet is None:
+            raise SnippetNotFoundError(f"Snippet id {snippet_id} not found")
+        snippet.favorite = not snippet.favorite
 
 
 class DBSnippetRepo(SnippetRepository):
@@ -93,3 +103,13 @@ class DBSnippetRepo(SnippetRepository):
         if language is not None:
             statment = statment.where(Snippet.language == language)
         return self.session.exec(statment).all()
+
+    def toggle_favorite(self, snippet_id: int) -> None:
+        snippet = self.session.get(Snippet, snippet_id)
+        if snippet is None:
+            raise SnippetNotFoundError(f"Snippet id {snippet_id} not found")
+        snippet.favorite = not snippet.favorite
+        self.session.add(snippet)
+        self.session.commit()
+        self.session.refresh(snippet)
+

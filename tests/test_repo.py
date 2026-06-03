@@ -220,3 +220,27 @@ def test_search_with_language_filter(backend, repo, add_snippets):
     assert len(repo.search("print", language=Language.rust)) == 0
     assert len(repo.search("do", language=Language.rust)) == 1
     assert len(repo.search("Do", language=Language.python)) == 1
+
+#Fav Tests
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_toggle_favorite_on(backend, repo, add_snippets):
+    snippet = repo.get(1)
+    assert snippet.favorite is False
+    repo.toggle_favorite(1)
+    snippet = repo.get(1)
+    assert snippet.favorite is True
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_toggle_favorite_off(backend, repo, add_snippets):
+    repo.toggle_favorite(1)
+    repo.toggle_favorite(1)
+    snippet = repo.get(1)
+    assert snippet.favorite is False
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_toggle_favorite_nonexistent(backend, repo):
+    with pytest.raises(SnippetNotFoundError):
+        repo.toggle_favorite(100)
