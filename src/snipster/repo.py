@@ -32,6 +32,28 @@ class SnippetRepository(ABC):
     def toggle_favorite(self, snippet_id: int) -> None:
         pass
 
+    @abstractmethod
+    def tag(self, snippet_id: int, /, *tags: str, remove: bool = False, sort: bool = True) -> None:
+        pass
+
+    def _update_tags(self, snippet, tags, *, remove, sort) -> str:
+        # Parse existing tags into a set
+        existing = {tag.strip() for tag in (snippet.tags or "").split(",") if tag.strip()}
+        # Parse new tags into a set
+        new = {tag.strip() for tag in tags if tag.strip()}
+        # If remove: set difference
+        if remove:
+            all_tags = existing - new
+        # Else: set union
+        else :
+            all_tags = existing | new
+        # Join and return as comma-separated string
+        tag_list = sorted(all_tags) if sort else list(all_tags)
+        return ", ".join(tag_list)
+
+
+
+
 
 class InMemorySnippetRepo(SnippetRepository):
     def __init__(self) -> None:
@@ -68,6 +90,13 @@ class InMemorySnippetRepo(SnippetRepository):
         if snippet is None:
             raise SnippetNotFoundError(f"Snippet id {snippet_id} not found")
         snippet.favorite = not snippet.favorite
+
+    def tag(self, snippet_id: int, /, *tags: str, remove: bool = False, sort: bool = True) -> None:
+        snippet = self._data.get(snippet_id)
+        if snippet is None:
+            raise SnippetNotFoundError(f"Snippet id {snippet_id} not found")
+        snippet.tags= self._update_tags(snippet, tags, remove=remove, sort=sort)
+
 
 
 class DBSnippetRepo(SnippetRepository):
@@ -112,4 +141,14 @@ class DBSnippetRepo(SnippetRepository):
         self.session.add(snippet)
         self.session.commit()
         self.session.refresh(snippet)
+
+    def tag(self, snippet_id: int, /, *tags: str, remove: bool = False, sort: bool = True) -> None:
+        snippet = self.session.get(Snippet, snippet_id)
+        if snippet is None:
+            raise SnippetNotFoundError(f"Snippet id {snippet_id} not found")
+        snippet.tags = self._update_tags(snippet, tags, remove=remove, sort=sort)
+        self.session.add(snippet)
+        self.session.commit()
+        self.session.refresh(snippet)
+
 

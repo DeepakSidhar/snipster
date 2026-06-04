@@ -244,3 +244,61 @@ def test_toggle_favorite_off(backend, repo, add_snippets):
 def test_toggle_favorite_nonexistent(backend, repo):
     with pytest.raises(SnippetNotFoundError):
         repo.toggle_favorite(100)
+
+#Tag
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_tag_add_single(backend, repo, add_snippets):
+    repo.tag(1, "test")
+    snippet = repo.get(1)
+    assert snippet.tag_list == ["test"]
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_tag_no_duplicates(backend, repo, add_snippets):
+    repo.tag(1, "test")
+    repo.tag(1, "test")
+    snippet = repo.get(1)
+    assert snippet.tag_list == ["test"]
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_tag_multiple(backend, repo, add_snippets):
+    repo.tag(1, "test")
+    repo.tag(1, "test2")
+    snippet = repo.get(1)
+    assert snippet.tag_list == ["test", "test2"]
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_tag_sorted(backend, repo, add_snippets):
+    repo.tag(1, "zebra", "alpha", "middle")
+    snippet = repo.get(1)
+    assert snippet.tag_list == ["alpha", "middle", "zebra"]
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_tag_remove(backend, repo, add_snippets):
+    repo.tag(1, "test", "test2")
+    repo.tag(1, "test", remove=True)
+    snippet = repo.get(1)
+    assert snippet.tag_list == ["test2"]
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_tag_nonexistent_snippet(backend, repo):
+    with pytest.raises(SnippetNotFoundError):
+        repo.tag(100)
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_tag_full_lifecycle(backend, repo, add_snippets):
+    repo.tag(1, "test")
+    assert repo.get(1).tag_list == ["test"]
+    repo.tag(1, "test")
+    assert repo.get(1).tag_list == ["test"]
+    repo.tag(1, "test2")
+    assert repo.get(1).tag_list == ["test", "test2"]
+    repo.tag(1, "test3", "test4", "test2")
+    assert repo.get(1).tag_list == ["test", "test2", "test3", "test4"]
+    repo.tag(1, "test2", "test3", remove=True)
+    assert repo.get(1).tag_list == ["test", "test4"]
