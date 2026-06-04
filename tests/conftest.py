@@ -11,12 +11,14 @@ def engine():
     return engine'
 """
 
+
 @pytest.fixture
 def engine():
     engine = create_engine("sqlite:///:memory:")
     SQLModel.metadata.create_all(engine)
     yield engine
     engine.dispose()
+
 
 @pytest.fixture
 def session(engine):

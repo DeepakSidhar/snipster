@@ -61,16 +61,19 @@ def example_snippets() -> list[Snippet]:
         ),
     ]
 
+
 @pytest.fixture
 def repo(backend, request):
     if backend == "db":
         return DBSnippetRepo(request.getfixturevalue("session"))
     return InMemorySnippetRepo()
 
+
 @pytest.fixture
 def add_snippets(repo, example_snippets):
     for snippet in example_snippets:
         repo.add(snippet)
+
 
 # --- InMemorySnippetRepo Tests ---
 
@@ -188,7 +191,9 @@ def test_db_full_lifecycle(session, example_snippet):
     with pytest.raises(SnippetNotFoundError):
         repo.delete(1)
 
+
 # Search Tests
+
 
 @pytest.mark.parametrize("backend", ["memory", "db"])
 def test_search_by_title(backend, repo, add_snippets):
@@ -221,7 +226,9 @@ def test_search_with_language_filter(backend, repo, add_snippets):
     assert len(repo.search("do", language=Language.rust)) == 1
     assert len(repo.search("Do", language=Language.python)) == 1
 
-#Fav Tests
+
+# Fav Tests
+
 
 @pytest.mark.parametrize("backend", ["memory", "db"])
 def test_toggle_favorite_on(backend, repo, add_snippets):
@@ -245,7 +252,8 @@ def test_toggle_favorite_nonexistent(backend, repo):
     with pytest.raises(SnippetNotFoundError):
         repo.toggle_favorite(100)
 
-#Tag
+
+# Tag
 @pytest.mark.parametrize("backend", ["memory", "db"])
 def test_tag_add_single(backend, repo, add_snippets):
     repo.tag(1, "test")
