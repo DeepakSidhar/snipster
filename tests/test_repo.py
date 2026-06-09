@@ -62,6 +62,19 @@ def example_snippets() -> list[Snippet]:
     ]
 
 
+@pytest.fixture
+def repo(backend, request):
+    if backend == "db":
+        return DBSnippetRepo(request.getfixturevalue("session"))
+    return InMemorySnippetRepo()
+
+
+@pytest.fixture
+def add_snippets(repo, example_snippets):
+    for snippet in example_snippets:
+        repo.add(snippet)
+
+
 # --- InMemorySnippetRepo Tests ---
 
 
@@ -177,3 +190,123 @@ def test_db_full_lifecycle(session, example_snippet):
     assert len(repo.list()) == 0
     with pytest.raises(SnippetNotFoundError):
         repo.delete(1)
+
+
+# Search Tests
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_search_by_title(backend, repo, add_snippets):
+    results = repo.search("print")
+    assert len(results) == 1
+    assert results[0].title == "print to stdout"
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_search_by_code(backend, repo, add_snippets):
+    results = repo.search("enter city")
+    assert len(results) == 1
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_search_case_insensitive(backend, repo, add_snippets):
+    assert len(repo.search("do")) == 2
+    assert len(repo.search("Do")) == 2
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_search_no_results(backend, repo, add_snippets):
+    assert len(repo.search("notfound")) == 0
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_search_with_language_filter(backend, repo, add_snippets):
+    assert len(repo.search("print", language=Language.python)) == 1
+    assert len(repo.search("print", language=Language.rust)) == 0
+    assert len(repo.search("do", language=Language.rust)) == 1
+    assert len(repo.search("Do", language=Language.python)) == 1
+
+
+# Fav Tests
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_toggle_favorite_on(backend, repo, add_snippets):
+    snippet = repo.get(1)
+    assert snippet.favorite is False
+    repo.toggle_favorite(1)
+    snippet = repo.get(1)
+    assert snippet.favorite is True
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_toggle_favorite_off(backend, repo, add_snippets):
+    repo.toggle_favorite(1)
+    repo.toggle_favorite(1)
+    snippet = repo.get(1)
+    assert snippet.favorite is False
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_toggle_favorite_nonexistent(backend, repo):
+    with pytest.raises(SnippetNotFoundError):
+        repo.toggle_favorite(100)
+
+
+# Tag
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_tag_add_single(backend, repo, add_snippets):
+    repo.tag(1, "test")
+    snippet = repo.get(1)
+    assert snippet.tag_list == ["test"]
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_tag_no_duplicates(backend, repo, add_snippets):
+    repo.tag(1, "test")
+    repo.tag(1, "test")
+    snippet = repo.get(1)
+    assert snippet.tag_list == ["test"]
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_tag_multiple(backend, repo, add_snippets):
+    repo.tag(1, "test")
+    repo.tag(1, "test2")
+    snippet = repo.get(1)
+    assert snippet.tag_list == ["test", "test2"]
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_tag_sorted(backend, repo, add_snippets):
+    repo.tag(1, "zebra", "alpha", "middle")
+    snippet = repo.get(1)
+    assert snippet.tag_list == ["alpha", "middle", "zebra"]
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_tag_remove(backend, repo, add_snippets):
+    repo.tag(1, "test", "test2")
+    repo.tag(1, "test", remove=True)
+    snippet = repo.get(1)
+    assert snippet.tag_list == ["test2"]
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_tag_nonexistent_snippet(backend, repo):
+    with pytest.raises(SnippetNotFoundError):
+        repo.tag(100)
+
+
+@pytest.mark.parametrize("backend", ["memory", "db"])
+def test_tag_full_lifecycle(backend, repo, add_snippets):
+    repo.tag(1, "test")
+    assert repo.get(1).tag_list == ["test"]
+    repo.tag(1, "test")
+    assert repo.get(1).tag_list == ["test"]
+    repo.tag(1, "test2")
+    assert repo.get(1).tag_list == ["test", "test2"]
+    repo.tag(1, "test3", "test4", "test2")
+    assert repo.get(1).tag_list == ["test", "test2", "test3", "test4"]
+    repo.tag(1, "test2", "test3", remove=True)
+    assert repo.get(1).tag_list == ["test", "test4"]
