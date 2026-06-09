@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from .exceptions import SnippetNotFoundError
 from .models import Language, Snippet
@@ -40,21 +40,16 @@ class SnippetRepository(ABC):
     ) -> None:
         pass
 
-    def _update_tags(self, snippet, tags, *, remove, sort) -> str:
+    # def _update_tags(self, snippet, tags, *, remove, sort) -> str:
+    def _update_tags(
+        self, snippet: Snippet, tags: tuple[str, ...], *, remove: bool, sort: bool
+    ) -> str:
         # Parse existing tags into a set
         existing = {
             tag.strip() for tag in (snippet.tags or "").split(",") if tag.strip()
         }
         # Parse new tags into a set
         new = {tag.strip() for tag in tags if tag.strip()}
-
-        # If remove: set difference
-        # if remove:
-        #    all_tags = existing - new
-        # Else: set union
-        # else:
-        #   all_tags = existing | new
-        # correcting the ruff error
         all_tags = existing - new if remove else existing | new
         # Join and return as comma-separated string
         tag_list = sorted(all_tags) if sort else list(all_tags)
@@ -81,11 +76,13 @@ class InMemorySnippetRepo(SnippetRepository):
         if snippet is None:
             raise SnippetNotFoundError(f"Snippet id {snippet_id} not found")
 
-    def search(self, query: str, language: Language | None = None) -> Sequence[Snippet]:
-        query = query.lower()
+    def search(
+        self, term: str, *, language: Language | None = None
+    ) -> Sequence[Snippet]:
+        term = term.lower()
         results = []
         for snippet in self._data.values():
-            text = query in snippet.title.lower() or query in snippet.code.lower()
+            text = term in snippet.title.lower() or term in snippet.code.lower()
             lang = language is None or snippet.language == language
             if text and lang:
                 results.append(snippet)
@@ -133,14 +130,16 @@ class DBSnippetRepo(SnippetRepository):
         self.session.delete(snippet)
         self.session.commit()
 
-    def search(self, query: str, language: Language | None = None) -> Sequence[Snippet]:
-        search = f"%{query}%"
-        statment = select(Snippet).where(
-            Snippet.title.ilike(search) | Snippet.code.ilike(search)
+    def search(
+        self, term: str, *, language: Language | None = None
+    ) -> Sequence[Snippet]:
+        search_term = f"%{term}%"
+        statement = select(Snippet).where(
+            col(Snippet.title).ilike(search_term) | col(Snippet.code).ilike(search_term)
         )
         if language is not None:
-            statment = statment.where(Snippet.language == language)
-        return self.session.exec(statment).all()
+            statement = statement.where(Snippet.language == language)
+        return self.session.exec(statement).all()
 
     def toggle_favorite(self, snippet_id: int) -> None:
         snippet = self.session.get(Snippet, snippet_id)
